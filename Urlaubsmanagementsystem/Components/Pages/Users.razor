@@ -1,0 +1,53 @@
+﻿@page "/Users"
+@using Urlaubsmanagementsystem.Models
+@using Urlaubsmanagementsystem.Data
+
+@inject DatabaseConnection Db
+
+<h3>User List</h3>
+<div class="d-flex justify-content-xl-end">
+<button class="btn btn-success">add new user</button>
+</div>
+
+@if (users == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped shadow">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Surname</th>
+                <th>E-Mail</th>
+                <th>Role</th>
+                <th style="width: auto;">Actions</th> 
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.Firstname</td>
+                    <td>@user.Lastname</td>
+                    <td>@user.Email</td>
+                    <td>@(user.Role?.RoleName ?? "No Role")</td>
+                    <td class="d-flex gap-2">
+                        <button class="btn btn-primary w-100">Edit</button>
+                        <button class="btn btn-danger w-100">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<User>? users { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await Db.Users.Include(user => user.Role).ToListAsync();
+    }
+}

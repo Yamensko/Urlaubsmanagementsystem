@@ -1,0 +1,50 @@
+﻿@page "/dashboard"
+@using Urlaubsmanagementsystem.Models
+@using Syncfusion.Blazor.Schedule
+
+
+<h3>Dashboard</h3>
+
+<SfSchedule TValue="LeaveRequest"
+            @ref="ScheduleRef"
+            Height="600px"
+            AllowDragAndDrop="false"
+            AllowResizing="false"
+            ShowQuickInfo="false">
+
+    <ScheduleEvents TValue="LeaveRequest"
+                    OnRenderCell="OnRenderCell"
+                    OnCellDoubleClick="OnCellDoubleClick"
+                    OnEventDoubleClick="OnEventDoubleClick">
+    </ScheduleEvents>
+
+    <ScheduleEventSettings DataSource="@ApprovedRequests">
+    </ScheduleEventSettings>
+
+    <ScheduleViews>
+        <ScheduleView Option="View.Month"></ScheduleView>
+    </ScheduleViews>
+
+</SfSchedule>
+
+<div class="row mt-4">
+    <div class="col-md-6 mb-4">
+        <div class="card text-center shadow h-100">
+            <div class="card-body">
+                <h4>Request Vacation</h4>
+                <p>Create a new vacation request.</p>
+                <a href="/request-vacation" class="btn btn-primary mt-3">Go</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card text-center shadow h-100">
+            <div class="card-body">
+                <h4>Review Requests</h4>
+                <p>Approve or decline employee requests.</p>
+                <a href="/review-requests" class="btn btn-success mt-3">Go</a>
+            </div>
+        </div>
+    </div>
+</div>

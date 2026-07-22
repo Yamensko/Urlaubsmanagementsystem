@@ -1,0 +1,33 @@
+﻿@page "/testconnection"
+
+@using Microsoft.EntityFrameworkCore
+@using Urlaubsmanagementsystem.Models
+@using Urlaubsmanagementsystem.Data
+
+@inject DatabaseConnection Db
+@inject IConfiguration Config
+
+<h3>TestConnection</h3>
+
+<p><b>Database:</b> @databaseName</p>
+<p><b>Can connect:</b> @canConnect</p>
+
+
+@code {
+    public string? databaseName;
+    public bool canConnect;
+    public string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            databaseName = Db.Database.GetDbConnection().Database;
+            canConnect = await Db.Database.CanConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.ToString();
+        }
+    }
+}

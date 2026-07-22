@@ -1,0 +1,340 @@
+﻿@page "/requests-vacation"
+@using Urlaubsmanagementsystem.Models
+@using Microsoft.EntityFrameworkCore
+@inject Urlaubsmanagementsystem.Data.DatabaseConnection DbContext
+
+<div class="dashboard-wrapper">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Request Vacation</h3>
+
+        @if (selectionActive)
+        {
+            <div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center gap-3 animate__animated animate__fadeIn">
+                <span>
+                    start <strong>@startDate?.ToString("dd.MM")</strong>
+                    until <strong>@endDate?.ToString("dd.MM.yyyy")</strong>
+                </span>
+
+                <span class="badge bg-primary">@WorkDays work days</span>
+
+                <button class="btn btn-success btn-sm fw-bold" @onclick="SubmitRequest">
+                    submit request
+                </button>
+
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ResetSelection">
+                    Reset
+                </button>
+            </div>
+        }
+    </div>
+
+    <div class="calendar-controls d-flex align-items-center gap-3 mb-4">
+        <div class="nav-arrows d-flex gap-1">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousMonth">&lt;</button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="NextMonth">&gt;</button>
+        </div>
+
+        <div class="date-selectors d-flex gap-2">
+            <select class="form-select w-auto" @bind="SelectedMonth">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    <option value="@i">
+                        @(new DateTime(1, i, 1).ToString("MMMM"))
+                    </option>
+                }
+            </select>
+
+            <select class="form-select w-auto" @bind="SelectedYear">
+                @for (int y = 2024; y <= 2030; y++)
+                {
+                    <option value="@y">@y</option>
+                }
+            </select>
+        </div>
+
+        <button class="btn btn-light btn-sm ms-auto" @onclick="GoToToday">
+            Today
+        </button>
+    </div>
+
+    <div class="calendar-card shadow-sm">
+        <div class="calendar-grid header">
+            <div>Sun</div><div>Mon</div><div>Tues</div><div>Wed</div>
+            <div>thur</div><div>Fri</div><div>Sat</div>
+        </div>
+
+        <div class="calendar-grid body">
+            @foreach (var day in CalendarDays)
+            {
+                if (day == DateTime.MinValue)
+                {
+                    <div class="calendar-cell empty"></div>
+                }
+                else
+                {
+                    var isHoliday = IsPublicHoliday(day);
+                    var isWeekend = IsWeekend(day);
+                    var userReq = GetMyRequestForDay(day);
+                    var isSelected = IsSelected(day);
+
+                    <div class="calendar-cell @(isWeekend ? "weekend" : "") @(isHoliday ? "status-warning" : "") @(isSelected ? "selected-range" : "")"
+                         @onclick="() => HandleDateClick(day)"
+                         style="cursor: pointer;">
+
+                        <div class="cell-top">
+                            <span class="day-label">@day.Day.ToString("D2")</span>
+
+                            @if (isHoliday)
+                            {
+                                <span class="badge bg-danger text-white" style="font-size: 0.5rem;">
+                                    Holiday
+                                </span>
+                            }
+                        </div>
+
+                        <div class="cell-content">
+                            @if (userReq != null)
+                            {
+                                var statusClass = userReq.DecisionId switch
+                                {
+                                    1 => "pending",
+                                    2 => "approved",
+                                    3 => "rejected",
+                                    _ => ""
+                                };
+
+                                var statusText = userReq.DecisionId switch
+                                {
+                                    1 => "Pending",
+                                    2 => "Approved",
+                                    3 => "Rejected",
+                                    _ => "Unknown"
+                                };
+
+                                <div class="vacation-bar @statusClass">
+                                    @statusText
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _selectedMonth = DateTime.Today.Month;
+    private int _selectedYear = DateTime.Today.Year;
+
+    private int SelectedMonth { get => _selectedMonth; set { _selectedMonth = value; GenerateCalendar(); } }
+    private int SelectedYear { get => _selectedYear; set { _selectedYear = value; GenerateCalendar(); } }
+
+    private List<DateTime> CalendarDays = new();
+    private List<LeaveRequest> MyRequests = new();
+
+    private DateTime? startDate;
+    private DateTime? endDate;
+
+    private int WorkDays = 0;
+
+    private bool selectionActive => startDate != null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRequests();
+        GenerateCalendar();
+    }
+
+    private async Task LoadRequests()
+    {
+        var user = await DbContext.Users.FirstOrDefaultAsync();
+
+        if (user != null)
+        {
+            MyRequests = await DbContext.LeaveRequests
+                .Where(x => x.UserId == user.UserId)
+                .ToListAsync();
+        }
+    }
+
+    private void GenerateCalendar()
+    {
+        CalendarDays.Clear();
+
+        var firstDay = new DateTime(SelectedYear, SelectedMonth, 1);
+        int offset = (int)firstDay.DayOfWeek;
+
+        for (int i = 0; i < offset; i++)
+            CalendarDays.Add(DateTime.MinValue);
+
+        int days = DateTime.DaysInMonth(SelectedYear, SelectedMonth);
+
+        for (int i = 1; i <= days; i++)
+            CalendarDays.Add(new DateTime(SelectedYear, SelectedMonth, i));
+    }
+
+    private void HandleDateClick(DateTime day)
+    {
+        if (IsWeekend(day) || IsPublicHoliday(day))
+            return;
+
+        if (startDate == null || endDate != null)
+        {
+            startDate = day;
+            endDate = null;
+            return;
+        }
+
+        if (day >= startDate)
+        {
+            endDate = day;
+            CalculateDays();
+        }
+        else
+        {
+            startDate = day;
+        }
+    }
+
+    private void CalculateDays()
+    {
+        if (startDate == null || endDate == null)
+            return;
+
+        WorkDays = 0;
+
+        for (var d = startDate.Value; d <= endDate.Value; d = d.AddDays(1))
+        {
+            if (!IsWeekend(d) && !IsPublicHoliday(d))
+                WorkDays++;
+        }
+    }
+
+    private LeaveRequest? GetMyRequestForDay(DateTime day)
+    {
+        return MyRequests.FirstOrDefault(x =>
+            day.Date >= x.StartDate.Date &&
+            day.Date <= x.EndDate.Date);
+    }
+
+    private bool IsSelected(DateTime day)
+    {
+        return startDate != null &&
+               endDate != null &&
+               day >= startDate &&
+               day <= endDate;
+    }
+
+    private bool IsWeekend(DateTime d)
+    {
+        return d.DayOfWeek == DayOfWeek.Saturday ||
+               d.DayOfWeek == DayOfWeek.Sunday;
+    }
+
+    private bool IsPublicHoliday(DateTime d)
+    {
+        var holidays = new List<DateTime>
+        {
+            new DateTime(2026, 1, 1),
+            new DateTime(2026, 5, 1),
+            new DateTime(2026, 10, 3),
+            new DateTime(2026, 12, 25)
+        };
+
+        return holidays.Contains(d.Date);
+    }
+
+    private void PreviousMonth()
+    {
+        SelectedMonth--;
+
+        if (SelectedMonth == 0)
+        {
+            SelectedMonth = 12;
+            SelectedYear--;
+        }
+
+        GenerateCalendar();
+    }
+
+    private void NextMonth()
+    {
+        SelectedMonth++;
+
+        if (SelectedMonth == 13)
+        {
+            SelectedMonth = 1;
+            SelectedYear++;
+        }
+
+        GenerateCalendar();
+    }
+
+    private void GoToToday()
+    {
+        SelectedMonth = DateTime.Today.Month;
+        SelectedYear = DateTime.Today.Year;
+        GenerateCalendar();
+    }
+
+    private void ResetSelection()
+    {
+        startDate = null;
+        endDate = null;
+        WorkDays = 0;
+    }
+
+    // 🔥🔥🔥 IMPORTANT PART
+    private async Task SubmitRequest()
+    {
+        var user = await DbContext.Users.FirstOrDefaultAsync();
+
+        if (user == null || startDate == null || endDate == null)
+            return;
+
+        // 🔍 CHECK if request already exists (overlapping)
+        var existingRequest = await DbContext.LeaveRequests
+            .FirstOrDefaultAsync(x =>
+                x.UserId == user.UserId &&
+                (
+                    startDate <= x.EndDate &&
+                    endDate >= x.StartDate
+                ));
+
+        if (existingRequest != null)
+        {
+            // 🔁 UPDATE existing request
+            existingRequest.StartDate = startDate.Value;
+            existingRequest.EndDate = endDate.Value;
+            existingRequest.DecisionId = 1; // back to Pending
+
+            DbContext.LeaveRequests.Update(existingRequest);
+
+            Console.WriteLine("Updated existing request");
+        }
+        else
+        {
+            // ➕ CREATE new request
+            var request = new LeaveRequest
+            {
+                RequestId = Guid.NewGuid(),
+                UserId = user.UserId,
+                StartDate = startDate.Value,
+                EndDate = endDate.Value,
+                CreatedAt = DateTime.Now,
+                DecisionId = 1
+            };
+
+            DbContext.LeaveRequests.Add(request);
+
+            Console.WriteLine("Created new request");
+        }
+
+        await DbContext.SaveChangesAsync();
+
+        await LoadRequests();
+        ResetSelection();
+    }
+}

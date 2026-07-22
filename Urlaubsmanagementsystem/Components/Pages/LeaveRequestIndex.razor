@@ -1,0 +1,40 @@
+﻿@page "/leave-requests"
+@using Urlaubsmanagementsystem.Models
+@using Microsoft.EntityFrameworkCore
+@inject Urlaubsmanagementsystem.Data.DatabaseConnection DbContext
+
+<h3>Urlaubsanträge</h3>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Von</th>
+            <th>Bis</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var req in requests)
+        {
+            <tr>
+                <td>@req.User?.Firstname @req.User?.Lastname</td>
+                <td>@req.StartDate.ToShortDateString()</td>
+                <td>@req.EndDate.ToShortDateString()</td>
+                <td>@req.Decision?.Status</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<LeaveRequest> requests = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        requests = await DbContext.LeaveRequests
+            .Include(l => l.User)
+            .Include(l => l.Decision)
+            .ToListAsync();
+    }
+}

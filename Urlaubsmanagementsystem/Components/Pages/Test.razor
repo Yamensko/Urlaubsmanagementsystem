@@ -1,0 +1,137 @@
+﻿@page "/"
+@using Urlaubsmanagementsystem.Models
+@using Microsoft.EntityFrameworkCore
+@using System.Linq
+@inject Urlaubsmanagementsystem.Data.DatabaseConnection DbContext
+
+<div class="dashboard-wrapper">
+    <h3 class="mb-4">Dashboard</h3>
+
+    <div class="calendar-controls d-flex align-items-center gap-3 mb-4">
+        <div class="nav-arrows d-flex gap-1">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousMonth">&lt;</button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="NextMonth">&gt;</button>
+        </div>
+
+        <div class="date-selectors d-flex gap-2">
+            <select class="form-select w-auto" @bind="SelectedMonth">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    <option value="@i">@(new DateTime(1, i, 1).ToString("MMMM"))</option>
+                }
+            </select>
+
+            <select class="form-select w-auto" @bind="SelectedYear">
+                @for (int y = 2020; y <= 2035; y++)
+                {
+                    <option value="@y">@y</option>
+                }
+            </select>
+        </div>
+
+        <button class="btn btn-light btn-sm ms-auto" @onclick="GoToToday">Today</button>
+    </div>
+
+    <div class="calendar-card shadow-sm">
+        <div class="calendar-grid header">
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Thes</div>
+            <div>Wed</div>
+            <div>Thur</div>
+            <div>Fri</div>
+            <div>Sat</div>
+        </div>
+
+        <div class="calendar-grid body">
+            @foreach (var day in CalendarDays)
+            {
+                @if (day == DateTime.MinValue)
+                {
+                    <div class="calendar-cell empty"></div>
+                }
+                else
+                {
+                    var requests = GetRequestsForDay(day);
+                    var count = requests.Count;
+
+                    <div class="calendar-cell @GetCssClass(count) @(IsWeekend(day) ? "weekend" : "") @(IsToday(day) ? "today" : "")">
+                        <div class="cell-top">
+                            <span class="day-label">
+                                @(day.Day == 1 ? day.ToString("MMM. d") : day.Day.ToString("D2"))
+                            </span>
+                            @if (count > 0)
+                            {
+                                <span class="mini-badge">@count.ToString("D2")</span>
+                            }
+
+                        </div>
+
+                        <div class="cell-content">
+                            @foreach (var req in requests.Take(2))
+                            {
+                                <div class="name-tag" title="@req.User?.Firstname @req.User?.Lastname">
+                                    @req.User?.Firstname @req.User?.Lastname
+                                </div>
+                            }
+
+                            @if (count > 2)
+                            {
+                                <button class="btn-more-link" @onclick="() => OpenPopup(day)">
+                                    +@(count - 2) more
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="popup-backdrop" @onclick="ClosePopup">
+        <div class="popup shadow-lg" @onclick:stopPropagation>
+            <div class="popup-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@SelectedPopupDate.ToString("dd. MMMM yyyy")</h5>
+                <button type="button" class="btn-close" @onclick="ClosePopup"></button>
+            </div>
+            <div class="popup-body">
+                @foreach (var req in GetRequestsForDay(SelectedPopupDate))
+                {
+                    <div class="vacation-entry mb-3 pb-2 border-bottom">
+                        <div class="fw-bold">@req.User?.Firstname @req.User?.Lastname</div>
+                        <div class="text-muted small">
+                            @req.StartDate.ToShortDateString() - @req.EndDate.ToShortDateString()
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="popup-footer">
+                <button class="btn btn-secondary w-100" @onclick="ClosePopup">Schließen</button>
+            </div>
+        </div>
+    </div>
+}
+<div class="row mt-4">
+    <div class="col-md-6 mb-4">
+        <div class="card text-center shadow h-100">
+            <div class="card-body">
+                <h4>Request Vacation</h4>
+                <p>Create a new vacation request.</p>
+                <a href="/requests-vacation" class="btn btn-primary mt-3">Go</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card text-center shadow h-100">
+            <div class="card-body">
+                <h4>Review Requests</h4>
+                <p>Approve or decline employee requests.</p>
+                <a href="/requests/review" class="btn btn-success mt-3">Go</a>
+            </div>
+        </div>
+    </div>
+</div>

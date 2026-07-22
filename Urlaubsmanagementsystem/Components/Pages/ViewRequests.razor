@@ -1,0 +1,111 @@
+﻿@page "/requests/review"
+@using Urlaubsmanagementsystem.Models
+@using Microsoft.EntityFrameworkCore
+@inject Urlaubsmanagementsystem.Data.DatabaseConnection DbContext
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>review peinding requests</h3>
+        <span class="badge bg-secondary">@PendingRequests.Count pending</span>
+    </div>
+
+    @if (PendingRequests.Count == 0)
+    {
+        <div class="alert alert-info shadow-sm">
+            <i class="bi bi-check-circle-fill me-2"></i>no pending requests available.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-hover align-middle bg-white mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Employee</th>
+                        <th>Date range</th>
+                        <th>Duration</th>
+                        <th>Created at</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var req in PendingRequests)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-bold">@req.User?.Firstname @req.User?.Lastname</div>
+                                <div class="text-muted small">@req.User?.Email</div>
+                            </td>
+                            <td>
+                                <div>@req.StartDate.ToShortDateString() - @req.EndDate.ToShortDateString()</div>
+                            </td>
+                            <td>
+                                @((req.EndDate - req.StartDate).Days + 1) Days
+                            </td>
+                            <td class="text-muted small">
+                                @req.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group shadow-sm">
+                                    <button class="btn btn-success btn-sm" @onclick="() => UpdateStatus(req, 2)">
+                                        <i class="bi bi-check-lg"></i> Approve
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" @onclick="() => UpdateStatus(req, 3)">
+                                        <i class="bi bi-x-lg"></i> Decline
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="mt-4">
+        <button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/")'>
+            Back to Dashboard
+        </button>
+    </div>
+</div>
+
+@code {
+    private List<LeaveRequest> PendingRequests = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRequests();
+    }
+
+    private async Task LoadRequests()
+    {
+        // Lädt nur Anträge mit DecisionId 1 (Pending)
+        PendingRequests = await DbContext.LeaveRequests
+            .Include(r => r.User)
+            .Include(r => r.Decision)
+            .Where(r => r.DecisionId == 1)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync();
+    }
+
+    private async Task UpdateStatus(LeaveRequest request, byte newStatusId)
+    {
+        try
+        {
+            // Update der DecisionId (2 = Approved, 3 = Rejected)
+            request.DecisionId = newStatusId;
+
+            DbContext.LeaveRequests.Update(request);
+            await DbContext.SaveChangesAsync();
+
+            // Liste neu laden
+            await LoadRequests();
+        }
+        catch (Exception ex)
+        {
+            // Hier könnte man eine Fehlermeldung anzeigen
+            Console.WriteLine("Fehler beim Updaten: " + ex.Message);
+        }
+    }
+}

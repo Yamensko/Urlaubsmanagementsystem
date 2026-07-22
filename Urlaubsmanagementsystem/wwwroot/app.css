@@ -1,0 +1,221 @@
+/* --- BASIS & NAVI --- */
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.calendar-controls {
+    background-color: #ffffff;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.nav-arrows .btn {
+    border-color: #dee2e6;
+    background: white;
+}
+
+/* --- GRID SYSTEM (Fixed Layout) --- */
+.calendar-card {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+    overflow: hidden;
+}
+
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+    .calendar-grid.header div {
+        padding: 12px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 0.85rem;
+        border-bottom: 1px solid #dee2e6;
+        background: #fff;
+    }
+
+.calendar-cell {
+    min-height: 115px;
+    border-right: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+    .calendar-cell.today {
+        border: 2px solid #0d6efd;
+    }
+
+    .calendar-cell:nth-child(7n) {
+        border-right: none;
+    }
+
+.cell-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.day-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* --- DASHBOARD ELEMENTS (Badges & Tags) --- */
+.mini-badge {
+    background: #2196f3;
+    color: white;
+    font-size: 0.7rem;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.name-tag {
+    font-size: 0.72rem;
+    padding: 2px 5px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-more-link {
+    background: none;
+    border: none;
+    color: #007bff;
+    font-size: 0.75rem;
+    text-align: left;
+    padding: 0;
+}
+
+/* --- HEATMAP STATUS COLORS --- */
+.status-critical {
+    background-color: #ff0000 !important;
+}
+
+    .status-critical .day-label, .status-critical .name-tag, .status-critical .btn-more-link {
+        color: white !important;
+    }
+
+    .status-critical .mini-badge {
+        background: white;
+        color: #ff0000;
+    }
+
+.status-warning {
+    background-color: #ff9800 !important;
+}
+
+    .status-warning .day-label, .status-warning .name-tag {
+        color: white !important;
+    }
+
+.status-ok {
+    background-color: #e8f5e9 !important;
+}
+
+.weekend {
+    background-color: #fafafa;
+}
+
+
+.calendar-cell.empty {
+    background-color: #f1f1f1;
+}
+
+/* --- VACATION BARS --- */
+.vacation-bar {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 22px;
+    line-height: 22px;
+    margin: 2px 0;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    text-align: center;
+    color: white;
+}
+
+    .vacation-bar.pending {
+        background-color: #ffc107;
+        color: #212529;
+        border: 1px dashed #997404;
+    }
+
+    .vacation-bar.rejected {
+        background-color: #f8d7da;
+        color: #842029;
+    }    
+
+    .vacation-bar.approved {
+        background-color: #0d6efd;
+    }
+
+
+
+/* ==========================================================================
+   THE POPUP SYSTEM (Restored to original look)
+   ========================================================================== */
+
+.popup-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5); /* Dimmed background */
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup {
+    background: white;
+    border-radius: 8px;
+    width: 350px; /* Standard width from your previous version */
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.popup-header {
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    font-weight: bold;
+}
+
+.popup-body {
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.popup-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.selected-range {
+    background-color: rgba(33, 150, 243, 0.2) !important;
+    border: 2px solid #2196f3 !important;
+}
